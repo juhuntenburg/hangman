@@ -15,9 +15,19 @@ class Hangman
   def select_word(fname)
     words = []
     File.readlines(fname).each do |line|
-      words << line.chomp if line.size >= 6 && line.size <= 13
+      words << line.chomp if line.size.between?(6, 13)
     end
-    words.sample.chars
+    words.sample.downcase.chars
+  end
+
+  def guess
+    loop do
+      print "Guess a character: "
+      char = gets.chomp.downcase
+      return(char) if char.size == 1 && ("a".."z").include?(char)
+
+      puts "Incorrect input, only single characters are allowed."
+    end
   end
 
   def printout
@@ -27,4 +37,5 @@ class Hangman
 end
 
 hm = Hangman.new
-hm.printout
+char = hm.guess
+puts char
