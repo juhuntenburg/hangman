@@ -5,11 +5,12 @@ class Hangman
   ATTEMPTS = 8
   attr_accessor :word, :guessed, :attempts
 
-  def initialize
+  def initialize(debug: false)
     @word = select_word(FNAME)
     @guessed = Array.new(word.size, "_")
     @attempts = ATTEMPTS
-    super
+    puts word.join if debug
+    super()
   end
 
   def select_word(fname)
@@ -18,6 +19,25 @@ class Hangman
       words << line.chomp if line.size.between?(6, 13)
     end
     words.sample.downcase.chars
+  end
+
+  def play
+    8.times do
+      per_attempt
+      break if guessed.count("_").zero?
+    end
+    guessed.count("_").zero? ? puts("\nYou won!") : puts("\nYou lost!")
+    puts word.join(" ")
+  end
+
+  def per_attempt
+    loop do
+      printout
+      break unless update_guessed(guess)
+      return if guessed.count("_").zero?
+    end
+    self.attempts -= 1
+    printout
   end
 
   def guess
@@ -30,12 +50,17 @@ class Hangman
     end
   end
 
+  def update_guessed(char)
+    puts "You already guessed this character correctly" if guessed.include?(char)
+    indices = word.each_index.select { |i| word[i] == char }
+    indices.empty? ? false : indices.each { |i| guessed[i] = char }
+  end
+
   def printout
-    puts guessed.join(" ")
+    puts "\n#{guessed.join(' ')}"
     puts "Remaining attempts: #{@attempts}/#{ATTEMPTS}"
   end
 end
 
-hm = Hangman.new
-char = hm.guess
-puts char
+hm = Hangman.new(debug: true)
+hm.play
