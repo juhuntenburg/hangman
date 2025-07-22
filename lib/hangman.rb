@@ -1,16 +1,55 @@
 # frozen_string_literal: true
 
+require "json"
+
+# Class to initialize and play the game
 class Hangman
+  CACHE = File.join(File.expand_path("..", __dir__), "cache")
   FNAME = "google-10000-english-no-swears.txt"
   ATTEMPTS = 8
   attr_accessor :word, :guessed, :attempts
 
-  def initialize(debug: false)
+  def initialize
+    return if continue_previous?
+
     @word = select_word(FNAME)
     @guessed = Array.new(word.size, "_")
     @attempts = ATTEMPTS
-    puts word.join if debug
-    super()
+    puts word
+  end
+
+  def continue_previous?
+    answer = nil
+    until %w[y n].include?(answer)
+      print "Load previous game (Y/N)?"
+      answer = gets.chomp.downcase
+    end
+    answer == "y" ? load_file : false
+  end
+
+  def load_file
+    if Dir.exist?(CACHE) && !Dir.entries(CACHE).empty?
+      latest_file = Dir.glob("#{CACHE}/*").max_by { |f| File.mtime(f) }
+      parse_game(latest_file)
+    else
+      puts "No previous game found. Starting new game."
+    end
+  end
+
+  def parse_game(fname)
+    game = JSON.load_file(fname, symbolize_names: true)
+    @word = game[:word]
+    @guessed = game[:guessed]
+    @attempts = game[:attempts]
+  end
+
+  def save_game
+    puts "Saved game, you can choose to continue next time."
+    game = { word: word, guessed: guessed, attempts: attempts }
+    Dir.mkdir(CACHE) unless Dir.exist?(CACHE)
+    now = Time.now.strftime("%Y%m%d_%H%M%S")
+    File.write("#{CACHE}/hangman_#{now}.json", JSON.pretty_generate(game))
+    exit(0)
   end
 
   def select_word(fname)
@@ -42,9 +81,10 @@ class Hangman
 
   def guess
     loop do
-      print "Guess a character: "
+      print "Guess a character (or press '*' to save the game): "
       char = gets.chomp.downcase
       return(char) if char.size == 1 && ("a".."z").include?(char)
+      return save_game if char == "*"
 
       puts "Incorrect input, only single characters are allowed."
     end
@@ -62,5 +102,6 @@ class Hangman
   end
 end
 
-hm = Hangman.new(debug: true)
+hm = Hangman.new
+# hm.play
 hm.play
